@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, Menu } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 import ViewChapterSidebar from './ViewChapterSidebar';
 
 const ViewBook = ({ book }) => {
@@ -13,10 +13,13 @@ const ViewBook = ({ book }) => {
   const formatContent = (content) => {
     return content
       .split('\n\n')
-      .filter(paragraph => paragraph.trim())
-      .map(paragraph => paragraph.trim())
-      .map(paragraph => {
-        paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      .filter((paragraph) => paragraph.trim())
+      .map((paragraph) => paragraph.trim())
+      .map((paragraph) => {
+        paragraph = paragraph.replace(
+          /\*\*(.*?)\*\*/g,
+          '<strong>$1</strong>'
+        );
         paragraph = paragraph.replace(/\*(.*?)\*/g, '<em>$1</em>');
         return `<p>${paragraph}</p>`;
       })
@@ -35,7 +38,7 @@ const ViewBook = ({ book }) => {
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col p-6 overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="flex items-center justify-between p-4 border-b border-gray-100">
           <div className="flex items-center gap-4">
@@ -68,13 +71,99 @@ const ViewBook = ({ book }) => {
             </span>
 
             <button
-              onClick={() => setFontSize(prev => Math.min(prev + 2, 36))}
+              onClick={() => setFontSize((prev) => Math.min(prev + 2, 36))}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-lg font-bold"
             >
               A+
             </button>
           </div>
         </header>
+
+        {/* Reading Area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-6 py-12">
+            {/* Chapter Title */}
+            <h1 className="text-2xl md:text-3xl font-bold mb-8 leading-tight">
+              {selectedChapter.title}
+            </h1>
+
+            {/* Chapter Content */}
+            <div
+              className="reading-content"
+              style={{
+                fontSize: `${fontSize}px`,
+                lineHeight: 1.7,
+                fontFamily: 'Georgia, "Times New Roman", serif',
+              }}
+              dangerouslySetInnerHTML={{
+                __html: formatContent(selectedChapter.content),
+              }}
+            />
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between items-center mt-16 pt-8 border-t border-gray-200">
+              <button
+                onClick={() =>
+                  setSelectedChapterIndex(
+                    Math.max(0, selectedChapterIndex - 1)
+                  )
+                }
+                disabled={selectedChapterIndex === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous Chapter
+              </button>
+
+              <span className="text-sm text-gray-500">
+                {selectedChapterIndex + 1} of {book.chapters.length}
+              </span>
+
+              <button
+                onClick={() =>
+                  setSelectedChapterIndex(
+                    Math.min(
+                      book.chapters.length - 1,
+                      selectedChapterIndex + 1
+                    )
+                  )
+                }
+                disabled={
+                  selectedChapterIndex === book.chapters.length - 1
+                }
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next Chapter
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <style>{`
+          .reading-content p {
+            margin-bottom: 1.5em;
+            text-align: justify;
+            hyphens: auto;
+          }
+
+          .reading-content p:first-child {
+            margin-top: 0;
+          }
+
+          .reading-content p:last-child {
+            margin-bottom: 0;
+          }
+
+          .reading-content strong {
+            font-weight: 600;
+            color: #1f2937;
+          }
+
+          .reading-content em {
+            font-style: italic;
+          }
+        `}</style>
       </main>
     </div>
   );
