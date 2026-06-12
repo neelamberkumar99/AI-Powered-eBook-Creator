@@ -147,6 +147,110 @@ const EditorPage = () => {
             />
           </div>
         )}
+        {/* Desktop Sidebar */}
+        <div className="hidden md:flex md:flex-shrink-0 sticky top-0 h-screen">
+          <ChapterSidebar
+            book={book}
+            selectedChapterIndex={selectedChapterIndex}
+            onSelectChapter={(index) => {
+              setSelectedChapterIndex(index);
+              setIsSidebarOpen(false);
+            }}
+            onAddChapter={handleAddChapter}
+            onDeleteChapter={handleDeleteChapter}
+            onGenerateChapterContent={handleGenerateChapterContent}
+            isGenerating={isGenerating}
+            onReorderChapters={handleReorderChapters}
+
+          />
+        </div>
+        <main className="flex--1 h-full flex flex-col">
+          <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-slate-200 p-3 flex justify-between item center">
+            <div className="flex items-center gap-2">
+              <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 text-slate-500 hover:text-slate-800"
+            >
+              <menu className="w-6 h-6 " />
+            </button>
+            <div className="hidden sm:flex space-x-1 bg slate-100 p-1 rounded-lg">
+              <button
+                onClick={handleSaveChanges}
+                className={`flex items-center justify-center flex-1 py-2 px-4  text-sm font-medium rounded-md transition-colors duration-200 ${`}
+                  activeTab === "editor"
+                    ? "bg-white text-slate-800 shadow-sm"
+                    : "text-slate-500 hover:bg-gray-700"
+                }`}
+              >
+              <Edit className="w-4 h-4 mr-2" />
+              Editor
+              </button>
+              <button
+                onClick={() => setActiveTab("preview")}
+                className={`flex items-center justify-center flex-1 py-2 px-4  text-sm font-medium rounded-md transition-colors duration-200 whitespace-nowrap ${`
+                  activeTab === "details"
+                    ? "bg-white text-slate-800 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 "
+                }`}
+              >
+              <NotebookText className="w-4 h-4 mr-2" />
+              Book Details
+              </button>
+              </div>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-4">
+                <Dropdown
+                  trigger={
+                    <button variant="ghost" icon={FileDown}>
+                      Export
+                      <ChevronDown className="w-4 h-4 ml-1" />
+                    </button>
+                  }
+                >
+
+              <div className="flex items-center gap-2 sm:gap-4">
+              <DropdownItem onClick={handleExportPDF}>
+                  <FileDown className="w-4 h-4 mr-2 text-slate-500" />
+                  Export as pdf
+                </DropdownItem>
+                    <DropdownItem onClick={handleExportDoc}>
+                      <FileText className="w-4 h-4 mr-2 text-slate-500" />
+                      Export as document
+                    </DropdownItem>
+                    </Dropdown>
+                    <Button
+                    onClick={() => handleSaveChanges()
+                      isLoading={isSaving}
+                      icon={Save}
+                    >
+                      Save Changes
+                      </Button>
+                      </div>
+                      </header>
+
+                      <div className="w-full">
+                        {activeTab === "editor" ? (
+                          <ChapterEditorTab
+                          book={book}
+                          selectedChapterIndex={selectedChapterIndex}
+                          onChapterChange={handleChapterChange}
+                          onGeneratechapterContent={handleGenerateChapterContent}
+                          isGenerating={isGenerating}
+                          />
+                        )}
+                        <BookDetailsTab
+                          book={book}
+                          onBookChange={handleBookChange}
+                          onCoverUpload={handleCoverImageUpload}
+                          isUploading={isUploading}
+                          fileInputRef={fileInputRef}
+                          
+
+                        />
+                        }}
+                        </div>
+
+                      </main>
       </div>
     </>
   );
