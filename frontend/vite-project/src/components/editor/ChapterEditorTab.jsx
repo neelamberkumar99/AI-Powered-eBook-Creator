@@ -23,6 +23,47 @@ const ChapterEditorTab = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   //simple markdown parser
   const formatMarkdown = (content) => {
+    return content
+   // Headers
+.replace(/^### (.*$)/gm, '<h3 class="text-xl font-bold mb-4 mt-6">$1</h3>')
+.replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold mb-4 mt-8">$1</h2>')
+.replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mb-6 mt-8">$1</h1>')
+
+// Bold and Italic
+.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+
+// Blockquotes
+.replace(/^> (.*$)/gm,
+  '<blockquote class="border-l-4 border-violet-500 pl-4 italic text-gray-700 my-4">$1</blockquote>'
+)
+
+// Unordered Lists
+.replace(/^- (.*$)/gm, '<li class="ml-4 mb-1">$1</li>')
+.replace(/(<li.*<\/li>)/gs, '<ul class="my-4">$1</ul>')
+
+// Ordered Lists
+.replace(/^\d+\. (.*$)/gm,
+  '<li class="ml-4 mb-1 list-decimal">$1</li>'
+)
+.replace(/(<li class="ml-4 mb-1 list-decimal">.*<\/li>)/gs,
+  '<ol class="my-4 ml-4">$1</ol>'
+)
+
+// Paragraphs
+.split('\n\n')
+.map(paragraph => {
+  paragraph = paragraph.trim();
+
+  if (!paragraph) return '';
+
+  // Skip if already wrapped in HTML tags
+  if (paragraph.startsWith('<')) return paragraph;
+
+  return `<p class="mb-4 text-justify">${paragraph}</p>`;
+})
+.join('');
+
   };
   const mdeOptions = useMemo(() => {
     return {
