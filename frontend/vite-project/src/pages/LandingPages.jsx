@@ -10,6 +10,7 @@ const LandingPages = () => {
       <Hero />
       <Features />
       <Tastimonials />
+      <Footer />
     </div>
   );
 };
