@@ -55,23 +55,28 @@ const BookDetailsTab = ({
           <img
             src={coverImageUrl}
             alt="Cover"
-            className="w-48 rounded-lg shadow"
+            className="w-32 h-48 object-cover rounded-md mb-4 border border-slate-300"
           />
-
+          <p className="text-sm text-slate-500 mb-4">
+            upload a new cover image to replace the existing one. Supported formats:
+            recommended size: 400x600px.
+          </p>
+          
           <input
             type="file"
-            accept="image/*"
             ref={fileInputRef}
             onChange={onCoverUpload}
             className="hidden"
+            accept="image/*"
           />
-
+          
           <Button
-            onClick={() => fileInputRef.current?.click()}
+          variant="secondary"
+            onClick={() => fileInputRef.current.click()}
             icon={UploadCloud}
             isLoading={isUploading}
           >
-            Upload Cover
+            Upload image
           </Button>
         </div>
       </div>
