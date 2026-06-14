@@ -9,6 +9,7 @@ const LandingPages = () => {
       <Navbar />
       <Hero />
       <Features />
+      <Tastimonials />
     </div>
   );
 };
