@@ -53,7 +53,7 @@ const DOCK_STYLES = {
             try {
                 if(token.type==="heading_open"){
                     const level=parseInt(token.tag.substring(1),10);
-                    const contentToken=tokens[i+1];
+                    const nextToken=tokens[i+1];
                     if (nextToken&&contentToken.type==="inline"){
                         let headingLevel;
                         let fontSize;
@@ -92,8 +92,8 @@ const DOCK_STYLES = {
                         i+=2;//skip the content token and the closing tag
                     }
                 } else if(token.type==="paragraph_open"){
-                    const contentToken=tokens[i+1];
-                    if("nextToken&&contentToken.type==="inline" && nextToken.children){
+                    const nextToken=tokens[i+1];
+                    if("nextToken&&nextToken.type==="inline" && nextToken.children){
                         const textRuns=processInlineTokens(contentToken.children);
                         if(textRuns.length>0){
                             paragraphs.push(
@@ -124,13 +124,178 @@ const DOCK_STYLES = {
                 } else if(token.type==="ordered_List_open"){
                     inList=true;
                     ListType="ordered";
+                    orderedCounter=1;
                 } else if(token.type==="bullet_list_close"){
-                    inList=true;
-                    ListType="ordered";
-                }
-DOCK_STYLES.spacing.paragraphbefore,
+                    inList=false;
+                    ListType=null;
+                    orderedCounter=1;
 
-                        const textRuns=[];
+                }
+                paragraphs.push(new Paragraph({
+                    text:"",
+                    spacing:{after:100},
+                }));
+            }else if(token.type==="list_item_open"){
+                const nextToken=tokens[i+1];
+                if(nextToken&&nextToken.type==="paragraph_open"){
+                    const inlineToken=tokens[i+2];
+                    if(inlineToken&&inlineToken.type==="inline"&&inlineToken.children){
+                        const textRuns=processInlineTokens(inlineToken.children);
+                        let bulletText;
+                        if(ListType==="bullet"){
+                            bulletText="• ";
+                        } else if(ListType==="ordered"){
+                            bulletText=`${orderedCounter}. `;
+                            orderedCounter++;
+                        }
+                        paragraphs.push(
+                            new Paragraph({
+                                children:[
+                                    new TextRun({
+                                        text:bulletText,
+                                        font:DOCK_STYLES.fonts.body,
+                                    }),
+                                    ...textRuns,
+                                ],
+                                spacing:{
+                                    before:50,
+                                    after:50,
+                                },
+                                indent:{
+                                    left:720,
+                                },
+                            })
+                        );
+                        i+=4;
+                    }
+                }
+            }else if(token.type==="blockquote_open"){
+                //find the blockquote content
+                const nextToken=tokens[i+1];
+                if(nextToken&&nextToken.type==="paragraph_open"){
+                    const inlineToken=tokens[i+2];
+                    if(inlineToken&&inlineToken.type==="inline"){
+                        paragraphs.push(
+                            new Paragraph({
+                                children:[
+                                    new TextRun({
+                                        text:inlineToken.content,
+                                        italics:true,
+                                        color:"666666",
+                                        font:DOCK_STYLES.fonts.body,
+                                    }),
+                                ],
+                                spacing:{
+                                    before:200,
+                                    after:200,
+                                },
+                                indent:{
+                                    left:720,
+                                },
+                                alignment:AlignmentType.justified,
+                                border:{
+                                    left:{
+                                        color:"CCCCCC",
+                                        space:1,
+                                        style:"single",
+                                        size:6,
+                                    },
+                                },
+                            })
+                        );
+                        i+=4;
+                    }
+                }
+            } else if(token.type==="code_block"||token.type==="fence"){
+                paragraphs.push(
+                    new Paragraph({
+                        children:[
+                            new TextRun({
+                                text:token.content,
+                                font:"Courier New",
+                                size:20,
+                                color:"333333",
+                            }),
+                        ],
+                        spacing:{
+                            before:200,
+                            after:200,
+                        },
+                        shading:{
+                            fill:"F5F5F5",
+                        },
+                    })
+                );
+            }else if(token.type==="hr"){
+                paragraphs.push(
+                    new Paragraph({
+                        text:"",
+                        border:{
+                            bottom:{
+                                color:"CCCCCC",
+                                space:1,
+                                style:"single",
+                                size:6,
+                            },
+                        },
+                        spacing:{
+                            before:200,
+                            after:200,
+                        },
+                    })
+                );
+            }
+        }catch(tokenError){
+            console.error("Error processing token:", token.type, tokenError);
+            continue;
+        }
+    }
+    return paragraphs;
+};
+//process inline tokens to create text runs with formatting
+const processInlineTokens=(tokens)=>{
+    const textRuns=[];
+    let currentFormatting={
+        bold:false,
+        italics:false,
+    };
+    let textBuffer="";
+    const flushBuffer=()=>{
+        if(textBuffer.trim()){
+            textRuns.push(
+                new TextRun({
+                    text:textBuffer,
+                    bold:currentFormatting.bold,
+                    italics:currentFormatting.italics,
+                    font:DOCK_STYLES.fonts.body,
+                    size:DOCK_STYLES.sizes.body*2,
+                })
+            );
+            textBuffer="";
+        }
+    };
+    children.forEach((child)=>{
+        if(child.type==="strong_open"){
+            flushText();
+            currentFormatting.bold=true;
+        } else if(child.type==="strong_close"){
+            flushText();
+            currentFormatting.bold=false;
+        } else if(child.type==="em_open"){
+            flushText();
+            currentFormatting.italics=true;
+        } else if(child.type==="em_close"){
+            flushText();
+            currentFormatting.italics=false;
+        } else if(child.type==="text"){
+            textBuffer+=child.content;
+        }
+    });
+    flushBuffer();
+    return textRuns;
+}
+
+
 
                         
 const exportAsDocuments = async (req, res) => {
@@ -143,6 +308,8 @@ const exportAsDocuments = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized" });
         }
         const sections=[];
+        //cover page with image if available
+        const coverPage=[];
         if(book.coverImage&&!book.coverImage.includes("pravatar")){
             const imagepath=book.coverImage.substring(1);
             try {
@@ -151,6 +318,7 @@ const exportAsDocuments = async (req, res) => {
                     //add some top spacing
                     coverPage.push(
                         {
+                            new Paragraph({
                             text:"",
                             spacing:{before:1000},
                         })
@@ -180,9 +348,12 @@ const exportAsDocuments = async (req, res) => {
                     );
                 }
                 } catch (imgerror) {
-                    console.error("Error processing cover image:", imgerror);
+                    console.error(`Error processing cover image: ${imagepath}`, imgerror);
                 }
-        }
+        
+            }
+            sections.push(...coverPage);
+
         //add title and author to cover page
         const titlePage=[];
         //main title
@@ -199,8 +370,12 @@ const exportAsDocuments = async (req, res) => {
                 ],
                 alignment:AlignmentType.CENTER,
                 spacing:{before:200,after:400},
-                    })
-                };
+                    }),
+                },
+        alignment:AlignmentType.CENTER,
+       spacing:{before:200,after:400},
+            })
+        );
                 //subtitle if exists
                 if(book.subtitle&& book.subtitle.trim()){
                     titlePage.push(
@@ -245,11 +420,13 @@ const exportAsDocuments = async (req, res) => {
                                 size:12,
                             },
                         },
+                        alignment:AlignmentType.CENTER,
                         spacing:{before:400},
                     })
                 );
-                sections.push(...coverPage,...titlePage);
-                //add chapters
+                sections.push(...titlePage);
+            
+                //process    chapters
                 book.chapters.forEach((chapter,index)=>{
                     try {
                         //page braek before each chapter except the first one
@@ -273,7 +450,7 @@ const exportAsDocuments = async (req, res) => {
                                         color:"1A202c",
                                     }),
                                 ],
-                                alignment:AlignmentType.CENTER,
+            
                                 spacing:{before:DOCK_STYLES.spacing.chapterBefore,
                                 after:DOCK_STYLES.spacing.chapterAfter
                             },
@@ -302,16 +479,16 @@ const exportAsDocuments = async (req, res) => {
                             },
                             children:sections,  
                             },
-                        },
+                        
                     ],
                 });
-                //generate buffer
+                //generate document buffer
                 const buffer=await Packer.toBuffer(doc);
-                //set response headers for download
-                res.setHeader[
+                //send the document
+                res.setHeader(
                     "Content-type",
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ];
+                );
                 res.setHeader(
                     "Content-Disposition",
                     `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.docx"`
@@ -319,8 +496,9 @@ const exportAsDocuments = async (req, res) => {
                 res.setHeader("Content-Length", buffer.length);
                 //send buffer as response
                 res.send(buffer);
-    } catch (error) {
+    }catch (error) {
         console.error("Error exporting book:", error);
+        if(!res.headersSent){
         res.status(500).json({ 
             message: "Server error",
             error: error.message
@@ -329,6 +507,10 @@ const exportAsDocuments = async (req, res) => {
 }
 
 };
+module.exports = {
+    exportAsDocuments,
+};
+
 
 
 
