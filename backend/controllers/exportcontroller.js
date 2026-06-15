@@ -815,6 +815,7 @@ const exportAsPDF = async (req, res) => {
                 }
             });
         }
+        // Finalize PDF
 
         doc.end();
     } catch (error) {
