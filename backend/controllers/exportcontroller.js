@@ -507,6 +507,353 @@ const exportAsDocuments = async (req, res) => {
 }
 
 };
+//topography configuration for modern ebook style
+const TYPOGRAPHY={
+    fonts:{
+        serif:"Times-Roman",
+        serifBold:"Times-Bold",
+        serifItalic:"Times-Italic",
+        sans:"Helvetica",
+        sansBold:"Helvetica-Bold",
+        sansOblique:"Helvetica-Oblique",
+    },
+    sizes:{
+        titles:28,
+        author:16,
+        chapterTitle:20,
+        h1:18,
+        h2:16,
+        h3:14,
+        body:11,
+        caption:9,
+    },
+    spacing:{
+        paragraphspacing:12,
+        chapterSpacing:24,
+        headingSpacing:{before:16,after:8},
+        listSpacing:6,
+    },
+    colors:{
+        text:"#333333",
+        heading:"#1A1A1A",
+        accent:"#4F46E5",
+    },
+};
+const renderInlineTokens=(doc,tokens,options={})=>{
+    if(!tokens||tokens.length===0){
+        return;
+    }
+    const beseOptions={
+        align:options.align||"justify",
+        indent:options.indent||0,
+        lineGap:options.lineGap||2,
+    };
+    let currentFont=TYPOGRAPHY.fonts.serif;
+    let textBuffer="";
+
+    const flushBuffer=()=>{
+        if(textBuffer){
+            doc.font(currentFont)
+            .text(textBuffer,{
+                ...baseOptions,
+                continued:true,
+            });
+            textBuffer="";
+        }
+    };
+    for(let i=0;i<tokens.length;i++){
+        const token=tokens[i];
+
+        if(token.type==="text"){
+            textBuffer+=token.content;
+        } else if(token.type==="strong_open"){
+            flushBuffer();
+            currentFont=TYPOGRAPHY.fonts.serifBold;
+        } else if(token.type==="strong_close"){
+            flushBuffer();
+            currentFont=TYPOGRAPHY.fonts.serif;
+        } else if(token.type==="em_open"){
+            flushBuffer();
+            currentFont=TYPOGRAPHY.fonts.serifItalic;
+        }
+            else if(token.type==="em_close"){
+                flushBuffer();
+                currentFont=TYPOGRAPHY.fonts.serif;
+            }
+            else if(token.type==="code_inline"){
+                flushBuffer();
+                doc.font("courier").text(token.content,{
+                    ...baseOptions,
+                    continued:true,
+                });
+                doc.font(currentFont);
+            }
+    }
+    if(textBuffer){
+        doc.font(currentFont).text(textBuffer,{
+            ...baseOptions,
+            continued:false,
+        });
+    }else{
+        doc.text("",{
+            continued:false,
+        });
+    }
+};
+const renderMarkdown=(doc,markdown)=>{
+    if(!markdown||markdown.trim()==="")
+        return;
+    const tokens=md.parse(markdown,{});
+    let inList=false;
+    let listType=null;
+    let orderedListCounter=1;
+
+    for(let i=0;i<tokens.length;i++){
+        const token=tokens[i];
+
+        try {
+                if(token.type==="heading_open"){
+                    const level=parseInt(token.tag.substring(1),10);
+                    let fontSize;
+
+                    switch(level){
+                        case 1:
+                            fontSize=TYPOGRAPHY.sizes.h1;
+                            break;
+                        case 2:
+                            fontSize=TYPOGRAPHY.sizes.h2;
+                            break;
+                        case 3:
+                            fontSize=TYPOGRAPHY.sizes.h3;
+                            break;
+                        default:
+                            fontSize=TYPOGRAPHY.sizes.h3;
+                    
+                    }
+                    doc.moveDown
+                    (TYPOGRAPHY.spacing.headingSpacing.before/ TYPOGRAPHY.sizes.body);
+                    doc
+                    .font(TYPOGRAPHY.fonts.sansBold)
+                    .fontSize(fontSize)
+                    .fillColor(TYPOGRAPHY.colors.heading);
+
+                    if(i+1<tokens.length&&tokens[i+1].type==="inline"){
+                        renderInlineTokens(doc,tokens[i+1].children,{
+                            align:"left",
+                            lineGap:0,
+                        });
+                        i++;
+                    }
+                    doc.moveDown(
+                        TYPOGRAPHY.spacing.headingSpacing.after/TYPOGRAPHY.sizes.body);
+                        if(i+1<tokens.length&&tokens[i+1].type==="heading_close"){
+                            i++;
+                        }
+                } else if(token.type==="paragraph_open"){
+                    doc
+                    .font(TYPOGRAPHY.fonts.serif)
+                    .fontSize(TYPOGRAPHY.sizes.body)
+                    .fillColor(TYPOGRAPHY.colors.text);
+
+                    if(i+1<tokens.length&&tokens[i+1].type==="inline"){
+                        renderInlineTokens(doc,tokens[i+1].children,{
+                            align:"justify",
+                            lineGap:2,
+                        });
+                        i++;
+                    }
+                    if(!inList){
+                        doc.moveDown(TYPOGRAPHY.spacing.paragraphSpacing/TYPOGRAPHY.sizes.body);
+
+                    }
+                    if(i+1<tokens.length&&tokens[i+1].type==="paragraph_close"){
+                        i++;
+                    }
+                } else if(token.type==="bullet_list_open"){
+                    inList=true;
+                    listType="bullet";
+                    doc.moveDown(TYPOGRAPHY.spacing.listSpacing/TYPOGRAPHY.sizes.body);
+                } else if(token.type==="bullet_list_close"){
+                    inList=false;
+                    listType=null;
+                    doc.moveDown(TYPOGRAPHY.spacing.listSpacing/TYPOGRAPHY.sizes.body);
+                }
+                else if(token.type==="ordered_list_open"){
+                    inList=true;
+                    listType="ordered";
+                    orderedListCounter=1;
+                    doc.moveDown(TYPOGRAPHY.spacing.listSpacing/TYPOGRAPHY.sizes.body);
+                } else if(token.type==="ordered_list_close"){
+                    inList=false;
+                    listType=null;
+                    orderedListCounter=1;
+                    doc.moveDown(TYPOGRAPHY.spacing.listSpacing/TYPOGRAPHY.sizes.body);
+                }
+                else if(token.type==="list_item_open"){
+                    let bullet="";
+                    if(listType==="bullet"){
+                        bullet="• ";
+                    } else if(listType==="ordered"){
+                        bullet=`${orderedListCounter}. `;
+                        orderedListCounter++;
+                    }
+                    doc
+                    .font(TYPOGRAPHY.fonts.serif)
+                    .fontSize(TYPOGRAPHY.sizes.body)
+                    .fillColor(TYPOGRAPHY.colors.text)
+
+                    doc.text(bullet,{
+                        indent:20,
+                        continued:true,
+                    });
+
+                    for(let j=i+1;j<tokens.length;j++){
+                        if(tokens[j].type==="inline"&&tokens[j].children){
+                            renderInlineTokens(doc,tokens[j].children,{
+                                align:"left",
+                                lineGap:2,
+                            });
+                            break;
+                        }
+                        else if(tokens[j].type==="list_item_close"){
+                            break;
+                        }
+                    }
+                    doc.moveDown(TYPOGRAPHY.spacing.listSpacing/TYPOGRAPHY.sizes.body);
+                }else if(token.type==="code_block"||token.type==="fence"){
+                    doc.moveDown(TYPOGRAPHY.spacing.paragraphSpacing/TYPOGRAPHY.sizes.body);
+                    doc
+                    .font("Courier")
+                    .fontSize(9)
+                    .fillColor(TYPOGRAPHY.colors.text)
+                    .text(token.content,{
+                        indent:20,
+                        align:"left",
+                    });
+
+                    doc.font(TYPOGRAPHY.fonts.serif)
+                    .fontSize(TYPOGRAPHY.sizes.body);
+                     doc.moveDown(TYPOGRAPHY.spacing.paragraphSpacing/TYPOGRAPHY.sizes.body);
+                } else if(token.type==="hr"){
+                    doc
+                    .moveTo(doc.page.width-doc.page.margins.right, y)
+                    .stroke{};
+                    doc.moveDown();
+                }
+        } catch (renderError) {
+            console.error("Error rendering token:", token.type, renderError);
+            continue;
+        }
+    }
+};
+      
+
+
+const exportAsPDF = async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) {
+            return res.status(404).json({ message: "Book not found" });
+        }
+        if (book.userId.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        //create pdf with safe settings
+        const doc = new PDFDocument({
+            margin:72, top: 72,
+            bottom: 72,
+            left: 72,
+            right: 72,
+            bufferPages: true,
+            autoFirstPage: true,
+        });
+        //set header before piping
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf"`
+        );
+        doc.pipe(res);
+        //cover page with image if available
+        if (book.coverImage && !book.coverImage.includes("pravatar")) {
+            const imagePath = book.coverImage.substring(1);
+            try {
+                if (fs.existsSync(imagePath)) {
+                    const pageWidth = doc.page.width-doc.page.margins.left-doc.page.margins.right;
+                    const pageHeight = doc.page.height-doc.page.margins.top-doc.page.margins.bottom;
+                    doc.image(imagePath, doc.page.margins.left, doc.page.margins.top, {
+                        fit: [pageWidth=0.8, pageHeight=0.8],
+                        align: "center",
+                        valign: "center",
+                    });
+                    doc.addPage();
+                }
+            } catch (imgError) {
+                console.error(`Error processing cover image: ${imagePath}`, imgError);
+            }
+        }
+        //title page
+        doc
+        .font(TYPOGRAPHY.fonts.sansBold)
+        .fontSize(TYPOGRAPHY.sizes.titles)
+        .fillColor(TYPOGRAPHY.colors.heading)
+        .text(book.title, {
+            align: "center",
+        });
+
+        doc.moveDown(2);
+if (book.subtitle && book.subtitle.trim()) {
+            doc
+.font(TYPOGRAPHY.fonts.sans)
+.fontSize(TYPOGRAPHY.sizes.h2)
+.fillColor(TYPOGRAPHY.colors.text)
+.text('by ${book.author}', {
+    align: "center",
+});
+//process chapters
+if (book.chapters && book.chapters.length > 0) {
+    book.chapters.forEach((chapter, index) => {
+        try {
+            doc.addPage();
+            //chapter title
+            doc
+.font(TYPOGRAPHY.fonts.sansBold)
+.fontSize(TYPOGRAPHY.sizes.chapterTitle)
+.fillColor(TYPOGRAPHY.colors.heading)
+.text(chapter.title||`chapter ${index + 1}`, {
+    align: "left",
+});
+            doc.moveDown(
+                TYPOGRAPHY.spacing.chapterSpacing /TYPOGRAPHY.sizes.body
+
+            );
+            //chapter content
+            if (chapter.content && chapter.content.trim()) {
+                renderMarkdownToPDF(doc, chapter.content);
+            }
+        } catch (chapterError) {
+            console.error("Error processing chapter ${index}:", chapterError);
+
+        }
+    });
+}
+//finalize pdf
+doc.end();
+}
+catch (error) {
+    console.error("Error exporting book as PDF:", error);
+    if (!res.headersSent) {
+        res.status(500).json({
+            message: "Server error",
+            error: error.message,
+        });
+    }
+}
+    };
+
+
+
+
 module.exports = {
     exportAsDocuments,
 };
