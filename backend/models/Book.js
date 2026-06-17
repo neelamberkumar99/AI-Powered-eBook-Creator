@@ -43,5 +43,26 @@ const bookSchema = new mongoose.Schema({
     },
 }, {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
+
+bookSchema.virtual('userId').get(function() {
+    return this.userid;
+}).set(function(val) {
+    this.userid = val;
+});
+
+bookSchema.virtual('coverImage').get(function() {
+    return this.coverimage;
+}).set(function(val) {
+    this.coverimage = val;
+});
+
+bookSchema.virtual('chapters').get(function() {
+    return this.chepters;
+}).set(function(val) {
+    this.chepters = val;
+});
+
 module.exports = mongoose.model('Book', bookSchema);

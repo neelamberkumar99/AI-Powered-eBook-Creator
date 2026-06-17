@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
     filename: function (req, file, cb) {
         cb(
             null,
-         '${file.filedname}-${Date.now()}${path.extname(file.originalname)}'
+         `${file.filename}-${Date.now()}${path.extname(file.originalname)}`
         );
     
     },
@@ -37,5 +37,5 @@ const upload = multer({
     fileFilter: function (req, file, cb) {
         checkFileType(file, cb);
     },
-}).single("coverimage");// field name for the upload file
+});
 module.exports = upload;

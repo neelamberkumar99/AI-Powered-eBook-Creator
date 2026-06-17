@@ -1,5 +1,5 @@
 const express = require("express");
-const riutes = express.Router();
+const router = express.Router();
 const{
     createBook,
     getBooks,
@@ -12,9 +12,9 @@ const { protect } = require("../middleware/authMiddleware");
 const upload= require("../middleware/uploadMiddleware");
 const { route } = require("./authRoutes");
 //apply protect middleware to all routes
-routes.use(protect);
+router.use(protect);
 router.route("/").post(createBook).get(getBooks);
 router.route("/:id").get(getBookById).put(updateBook).delete(deleteBook);
-router.route("/cover/:id").post(upload.single("cover"), updateBookCover);
+router.route("/cover/:id").post(upload.single("coverImage"), updateBookCover);
  
-module.exports = routes;
+module.exports = router;
