@@ -1,5 +1,5 @@
-const {GoogleGenAI} = require('@google/genai');
-const ai = new GoogleGenAI({apiKey: process.env.GIMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY});
+const { GoogleGenAI } = require('@google/genai');
+const ai = new GoogleGenAI({ apiKey: process.env.GIMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY });
 //generate a book outline based on a prompt
 //POST /api/ai/generate-outline
 //access: private
