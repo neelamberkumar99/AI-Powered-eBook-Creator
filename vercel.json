@@ -1,7 +1,0 @@
-{
-  "buildCommand": "cd frontend/ebook && npm install && npm run build",
-  "outputDirectory": "frontend/ebook/dist",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}

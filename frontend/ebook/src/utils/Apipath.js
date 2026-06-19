@@ -1,5 +1,3 @@
-// In production (Vercel), set VITE_API_BASE_URL to your Render backend URL.
-// In development, falls back to localhost:8000.
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export const API_PATHS = {
