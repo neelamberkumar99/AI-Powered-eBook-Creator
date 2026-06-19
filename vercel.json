@@ -1,0 +1,9 @@
+{
+  "buildCommand": "cd frontend/ebook && npm install && npm run build",
+  "outputDirectory": "frontend/ebook/dist",
+  "installCommand": "echo 'install handled in buildCommand'",
+  "framework": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
